@@ -8,3 +8,6 @@ output
 
 # credentials
 .env
+
+# OS files
+.DS_Store
