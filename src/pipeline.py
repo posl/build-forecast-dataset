@@ -27,7 +27,9 @@ def parse_reset_at_timestamp(value: str | None) -> float | None:
         return None
 
 
-def retry_delay(headers: urllib.error.HTTPError | dict[str, str] | None, attempt: int) -> float:
+def retry_delay(
+    headers: urllib.error.HTTPError | dict[str, str] | None, attempt: int
+) -> float:
     retry_after = None
     if headers is not None:
         retry_after = headers.get("Retry-After")
@@ -45,10 +47,18 @@ def retry_delay(headers: urllib.error.HTTPError | dict[str, str] | None, attempt
             except ValueError:
                 pass
 
-    return min(60.0, 2.0 ** attempt)
+    return min(60.0, 2.0**attempt)
 
 
-def log_retry(verbose: bool, method: str, url: str, attempt: int, retries: int, reason: str, delay: float) -> None:
+def log_retry(
+    verbose: bool,
+    method: str,
+    url: str,
+    attempt: int,
+    retries: int,
+    reason: str,
+    delay: float,
+) -> None:
     if not verbose:
         return
     print(
@@ -82,7 +92,9 @@ def post_json(
             if attempt >= retries:
                 raise
             delay = retry_delay(None, attempt)
-            log_retry(verbose, "POST", url, attempt, retries, f"URLError {exc.reason}", delay)
+            log_retry(
+                verbose, "POST", url, attempt, retries, f"URLError {exc.reason}", delay
+            )
             time.sleep(delay)
 
     raise RuntimeError("unreachable")
@@ -116,7 +128,9 @@ def get_json(
             if attempt >= retries:
                 raise
             delay = retry_delay(None, attempt)
-            log_retry(verbose, "GET", url, attempt, retries, f"URLError {exc.reason}", delay)
+            log_retry(
+                verbose, "GET", url, attempt, retries, f"URLError {exc.reason}", delay
+            )
             time.sleep(delay)
 
     raise RuntimeError("unreachable")
@@ -149,7 +163,9 @@ def head_status(
             if attempt >= retries:
                 raise
             delay = retry_delay(None, attempt)
-            log_retry(verbose, "HEAD", url, attempt, retries, f"URLError {exc.reason}", delay)
+            log_retry(
+                verbose, "HEAD", url, attempt, retries, f"URLError {exc.reason}", delay
+            )
             time.sleep(delay)
 
     raise RuntimeError("unreachable")
@@ -229,7 +245,11 @@ def check_batch_graphql(
                 error_reporter=error_reporter,
             )
 
-            remaining_values = [value for value in (left.remaining, right.remaining) if value is not None]
+            remaining_values = [
+                value
+                for value in (left.remaining, right.remaining)
+                if value is not None
+            ]
             combined_remaining = min(remaining_values) if remaining_values else None
             combined_cost = None
             if left.cost is not None or right.cost is not None:
@@ -275,7 +295,9 @@ def check_batch_graphql(
             if isinstance(obj, dict) and obj.get("__typename") == "Tree":
                 has_workflows = True
         results.append((repo, has_workflows))
-    return CheckOutcome(results=results, remaining=remaining, cost=cost, reset_at=reset_at)
+    return CheckOutcome(
+        results=results, remaining=remaining, cost=cost, reset_at=reset_at
+    )
 
 
 def check_repo_rest(
@@ -421,14 +443,19 @@ def handle_done(
 
 def default_workers(mode: str) -> int:
     if mode == "graphql":
-        return 32
+        return 8
     if mode == "head":
-        return 64
-    return 32
+        return 16
+    return 8
 
 
 def default_batch_size(mode: str) -> int:
-    return 64 if mode == "graphql" else 1
+    if mode == "graphql":
+        return 32
+    elif mode == "rest":
+        return 4
+    else:
+        return 1
 
 
 def process_candidates(
@@ -477,6 +504,7 @@ def process_candidates(
             )
 
         if active_mode == "head":
+
             def head_checker(batch: Sequence[Repo]) -> CheckOutcome:
                 results: list[tuple[Repo, bool]] = []
                 failed: list[tuple[Repo, str]] = []
@@ -547,7 +575,9 @@ def process_candidates(
                 pending_limit = 1
                 graphql_resume_at = None
                 if verbose:
-                    print("info: probing GraphQL after rate-limit reset", file=sys.stderr)
+                    print(
+                        "info: probing GraphQL after rate-limit reset", file=sys.stderr
+                    )
 
             current_batch_size = runtime_batch_size(active_mode, batch_size)
             batch = take_batch(repo_iter, current_batch_size)
@@ -590,7 +620,10 @@ def process_candidates(
                             f"info: GraphQL resume probe scheduled at {resume_at_iso}",
                             file=sys.stderr,
                         )
-                if action == "fallback-head" and active_mode in {"graphql", "graphql_probe"}:
+                if action == "fallback-head" and active_mode in {
+                    "graphql",
+                    "graphql_probe",
+                }:
                     active_mode = "head"
                     checker = make_checker(active_mode)
                     pending_limit = workers * 2
@@ -604,7 +637,10 @@ def process_candidates(
                     checker = make_checker(active_mode)
                     pending_limit = workers
                     if verbose:
-                        print("info: GraphQL probe succeeded; resuming GraphQL mode", file=sys.stderr)
+                        print(
+                            "info: GraphQL probe succeeded; resuming GraphQL mode",
+                            file=sys.stderr,
+                        )
                 elif action == "stop":
                     stop_submitting = True
                     stats.stopped_early = True
@@ -642,7 +678,10 @@ def process_candidates(
                         f"info: GraphQL resume probe scheduled at {resume_at_iso}",
                         file=sys.stderr,
                     )
-            if action == "fallback-head" and active_mode in {"graphql", "graphql_probe"}:
+            if action == "fallback-head" and active_mode in {
+                "graphql",
+                "graphql_probe",
+            }:
                 active_mode = "head"
                 checker = make_checker(active_mode)
                 pending_limit = workers * 2
@@ -656,7 +695,10 @@ def process_candidates(
                 checker = make_checker(active_mode)
                 pending_limit = workers
                 if verbose:
-                    print("info: GraphQL probe succeeded; resuming GraphQL mode", file=sys.stderr)
+                    print(
+                        "info: GraphQL probe succeeded; resuming GraphQL mode",
+                        file=sys.stderr,
+                    )
             elif action == "stop":
                 stats.stopped_early = True
 
