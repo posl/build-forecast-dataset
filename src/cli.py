@@ -4,10 +4,7 @@ import argparse
 import os
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    load_dotenv = None
+from dotenv import load_dotenv
 
 
 DEFAULT_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
@@ -73,13 +70,13 @@ def parse_args() -> argparse.Namespace:
         "--workers",
         type=int,
         default=0,
-        help="Worker count. Defaults to 32 for GraphQL, 64 for HEAD, and 32 for REST.",
+        help="Worker count. Defaults to 8 for GraphQL, 16 for HEAD, and 8 for REST.",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
         default=0,
-        help="Repositories per request batch. Defaults to 64 for GraphQL and 1 for REST.",
+        help="Repositories per request batch. Defaults to 32 for GraphQL, 4 for REST, and 1 for HEAD.",
     )
     parser.add_argument(
         "--timeout",
@@ -131,6 +128,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def maybe_load_dotenv() -> None:
-    if load_dotenv is not None:
-        load_dotenv()
+def get_github_token() -> str:
+    load_dotenv()
+    return os.getenv("GITHUB_TOKEN") or ""

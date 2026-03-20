@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import time
 
-from .cli import maybe_load_dotenv, parse_args
+from .cli import get_github_token, parse_args
 from .models import ErrorReporter, Progress, Stats
 from .parser import iter_candidate_repos
 from .pipeline import default_batch_size, default_workers, process_candidates
@@ -18,13 +18,13 @@ def resolve_mode(check_mode: str, token: str) -> str:
 
 
 def main() -> int:
-    maybe_load_dotenv()
     args = parse_args()
-    mode = resolve_mode(args.check, args.token)
+    token = args.token or get_github_token()
+    mode = resolve_mode(args.check, token)
     workers = args.workers if args.workers > 0 else default_workers(mode)
     batch_size = args.batch_size if args.batch_size > 0 else default_batch_size(mode)
 
-    if args.token:
+    if token:
         print("info: GITHUB_TOKEN loaded", file=sys.stderr)
     if args.verbose:
         print(
@@ -39,7 +39,7 @@ def main() -> int:
         raise SystemExit("--workers must be positive")
     if batch_size <= 0:
         raise SystemExit("--batch-size must be positive")
-    if mode == "graphql" and not args.token:
+    if mode == "graphql" and not token:
         raise SystemExit("GraphQL mode requires a GitHub token")
 
     started_at = time.time()
@@ -47,7 +47,7 @@ def main() -> int:
     progress = Progress(args.progress_every, started_at)
     error_reporter = ErrorReporter(args.error_output)
 
-    if mode == "rest" and not args.token:
+    if mode == "rest" and not token:
         print(
             "warning: REST mode without GITHUB_TOKEN is rate-limited by GitHub and will be very slow",
             file=sys.stderr,
@@ -65,7 +65,7 @@ def main() -> int:
         graphql_endpoint=args.graphql_endpoint,
         rest_endpoint=args.rest_endpoint.rstrip("/"),
         head_endpoint=args.head_endpoint.rstrip("/"),
-        token=args.token,
+        token=token,
         timeout=args.timeout,
         retries=args.retries,
         verbose=args.verbose,
