@@ -158,6 +158,45 @@ def iter_candidate_repos(
                 raise ValueError(f"Unexpected end of file while parsing repository {stats.scanned + 1}")
 
 
+def iter_repos_from_error_file(
+    input_path: Path,
+    stats: Stats,
+    progress: Progress,
+    limit: int,
+) -> Iterator[Repo]:
+    seen: set[tuple[str, str]] = set()
+    scanned_limit = limit if limit > 0 else None
+
+    with input_path.open("r", encoding="utf-8") as infile:
+        for line_number, line in enumerate(infile, start=1):
+            stats.scanned += 1
+
+            stripped = line.rstrip("\n")
+            if not stripped:
+                progress.log_scanned(stats)
+                if scanned_limit is not None and stats.scanned >= scanned_limit:
+                    return
+                continue
+
+            parts = stripped.split("\t", 2)
+            if len(parts) < 2:
+                raise ValueError(
+                    f"Malformed error input at line {line_number}: expected at least 2 tab-separated columns"
+                )
+
+            full_name = parts[0].strip()
+            default_branch = parts[1].strip()
+            key = (full_name, default_branch)
+            if full_name and default_branch and "/" in full_name and key not in seen:
+                seen.add(key)
+                stats.eligible += 1
+                yield Repo(full_name=full_name, default_branch=default_branch)
+
+            progress.log_scanned(stats)
+            if scanned_limit is not None and stats.scanned >= scanned_limit:
+                return
+
+
 def take_batch(iterator: Iterator[Repo], size: int) -> list[Repo]:
     batch: list[Repo] = []
     while len(batch) < size:

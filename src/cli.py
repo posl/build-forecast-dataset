@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 DEFAULT_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
 DEFAULT_REST_ENDPOINT = "https://api.github.com"
 DEFAULT_HEAD_ENDPOINT = "https://github.com"
+DEFAULT_OUTPUT = Path("output/repos.txt")
+DEFAULT_ERROR_OUTPUT = Path("output/http_errors.txt")
+DEFAULT_RETRY_OUTPUT = Path("output/repos_retry.txt")
+DEFAULT_RETRY_ERROR_OUTPUT = Path("output/http_errors_retry.txt")
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,14 +32,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("output/repos.txt"),
-        help="Path to the output file containing matching GitHub repository URLs.",
+        default=None,
+        help=(
+            "Path to the output file containing matching GitHub repository URLs. "
+            "Defaults to output/repos.txt, or output/repos_retry.txt when --retry-errors-input is used."
+        ),
     )
     parser.add_argument(
         "--error-output",
         type=Path,
-        default=Path("output/http_errors.txt"),
-        help="Path to the output file listing repositories that could not be checked due to HTTP/network errors.",
+        default=None,
+        help=(
+            "Path to the output file listing repositories that could not be checked due to HTTP/network errors. "
+            "Defaults to output/http_errors.txt, or output/http_errors_retry.txt when --retry-errors-input is used."
+        ),
+    )
+    parser.add_argument(
+        "--retry-errors-input",
+        type=Path,
+        default=None,
+        help=(
+            "Retry only repositories listed in an existing HTTP/network error file. "
+            "Expected format: full_name<TAB>default_branch<TAB>reason."
+        ),
     )
     parser.add_argument(
         "--check",

@@ -3,9 +3,16 @@ from __future__ import annotations
 import sys
 import time
 
-from .cli import get_github_token, parse_args
+from .cli import (
+    DEFAULT_ERROR_OUTPUT,
+    DEFAULT_OUTPUT,
+    DEFAULT_RETRY_ERROR_OUTPUT,
+    DEFAULT_RETRY_OUTPUT,
+    get_github_token,
+    parse_args,
+)
 from .models import ErrorReporter, Progress, Stats
-from .parser import iter_candidate_repos
+from .parser import iter_candidate_repos, iter_repos_from_error_file
 from .pipeline import default_batch_size, default_workers, process_candidates
 
 
@@ -23,9 +30,20 @@ def main() -> int:
     mode = resolve_mode(args.check, token)
     workers = args.workers if args.workers > 0 else default_workers(mode)
     batch_size = args.batch_size if args.batch_size > 0 else default_batch_size(mode)
+    output_path = args.output or (
+        DEFAULT_RETRY_OUTPUT if args.retry_errors_input is not None else DEFAULT_OUTPUT
+    )
+    error_output_path = args.error_output or (
+        DEFAULT_RETRY_ERROR_OUTPUT if args.retry_errors_input is not None else DEFAULT_ERROR_OUTPUT
+    )
 
     if token:
         print("info: GITHUB_TOKEN loaded", file=sys.stderr)
+    if args.retry_errors_input is not None:
+        print(
+            f"info: retrying repositories from {args.retry_errors_input}",
+            file=sys.stderr,
+        )
     if args.verbose:
         print(
             (
@@ -45,7 +63,7 @@ def main() -> int:
     started_at = time.time()
     stats = Stats(started_at=started_at)
     progress = Progress(args.progress_every, started_at)
-    error_reporter = ErrorReporter(args.error_output)
+    error_reporter = ErrorReporter(error_output_path)
 
     if mode == "rest" and not token:
         print(
@@ -53,10 +71,13 @@ def main() -> int:
             file=sys.stderr,
         )
 
-    repo_iter = iter_candidate_repos(args.input, stats, progress, args.limit)
+    if args.retry_errors_input is not None:
+        repo_iter = iter_repos_from_error_file(args.retry_errors_input, stats, progress, args.limit)
+    else:
+        repo_iter = iter_candidate_repos(args.input, stats, progress, args.limit)
     process_candidates(
         repo_iter,
-        args.output,
+        output_path,
         stats,
         progress,
         mode=mode,
@@ -78,7 +99,7 @@ def main() -> int:
     if error_reporter.count() > 0:
         error_reporter.write()
         print(
-            f"info: wrote {error_reporter.count():,} HTTP/network error records to {args.error_output}",
+            f"info: wrote {error_reporter.count():,} HTTP/network error records to {error_output_path}",
             file=sys.stderr,
         )
 
