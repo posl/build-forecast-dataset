@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sys
 import time
 
@@ -34,7 +32,9 @@ def main() -> int:
         DEFAULT_RETRY_OUTPUT if args.retry_errors_input is not None else DEFAULT_OUTPUT
     )
     error_output_path = args.error_output or (
-        DEFAULT_RETRY_ERROR_OUTPUT if args.retry_errors_input is not None else DEFAULT_ERROR_OUTPUT
+        DEFAULT_RETRY_ERROR_OUTPUT
+        if args.retry_errors_input is not None
+        else DEFAULT_ERROR_OUTPUT
     )
 
     if token:
@@ -72,7 +72,9 @@ def main() -> int:
         )
 
     if args.retry_errors_input is not None:
-        repo_iter = iter_repos_from_error_file(args.retry_errors_input, stats, progress, args.limit)
+        repo_iter = iter_repos_from_error_file(
+            args.retry_errors_input, stats, progress, args.limit
+        )
     else:
         repo_iter = iter_candidate_repos(args.input, stats, progress, args.limit)
     process_candidates(

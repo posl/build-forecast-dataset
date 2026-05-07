@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import mmap
 from pathlib import Path
@@ -30,7 +28,9 @@ def decode_json_string(raw: bytes) -> str:
     return json.loads((b'"' + raw + b'"').decode("utf-8"))
 
 
-def extract_json_string(mm: mmap.mmap, start: int, end: int, marker: bytes) -> str | None:
+def extract_json_string(
+    mm: mmap.mmap, start: int, end: int, marker: bytes
+) -> str | None:
     pos = mm.find(marker, start, end)
     if pos == -1:
         return None
@@ -52,7 +52,9 @@ def extract_json_string(mm: mmap.mmap, start: int, end: int, marker: bytes) -> s
     return None
 
 
-def extract_json_bool(mm: mmap.mmap, start: int, end: int, marker: bytes) -> bool | None:
+def extract_json_bool(
+    mm: mmap.mmap, start: int, end: int, marker: bytes
+) -> bool | None:
     pos = mm.find(marker, start, end)
     if pos == -1:
         return None
@@ -98,7 +100,10 @@ def iter_candidate_repos(
     progress: Progress,
     limit: int,
 ) -> Iterator[Repo]:
-    with input_path.open("rb") as infile, mmap.mmap(infile.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+    with (
+        input_path.open("rb") as infile,
+        mmap.mmap(infile.fileno(), 0, access=mmap.ACCESS_READ) as mm,
+    ):
         items_pos = mm.find(ITEMS_MARKER)
         if items_pos == -1:
             raise ValueError(f"{input_path} does not contain an items array")
@@ -150,12 +155,17 @@ def iter_candidate_repos(
                                 yield repo
                             progress.log_scanned(stats)
                             pos = end
-                            if scanned_limit is not None and stats.scanned >= scanned_limit:
+                            if (
+                                scanned_limit is not None
+                                and stats.scanned >= scanned_limit
+                            ):
                                 return
                             break
                 pos += 1
             else:
-                raise ValueError(f"Unexpected end of file while parsing repository {stats.scanned + 1}")
+                raise ValueError(
+                    f"Unexpected end of file while parsing repository {stats.scanned + 1}"
+                )
 
 
 def iter_repos_from_error_file(

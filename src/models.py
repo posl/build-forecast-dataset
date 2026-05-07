@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sys
 import threading
 import time
@@ -41,7 +39,9 @@ class Progress:
         if self._next_scanned is None or stats.scanned < self._next_scanned:
             return
         with self._lock:
-            while self._next_scanned is not None and stats.scanned >= self._next_scanned:
+            while (
+                self._next_scanned is not None and stats.scanned >= self._next_scanned
+            ):
                 elapsed = max(time.time() - self.start_time, 0.001)
                 rate = stats.scanned / elapsed
                 print(
@@ -58,7 +58,9 @@ class Progress:
         if self._next_checked is None or stats.checked < self._next_checked:
             return
         with self._lock:
-            while self._next_checked is not None and stats.checked >= self._next_checked:
+            while (
+                self._next_checked is not None and stats.checked >= self._next_checked
+            ):
                 elapsed = max(time.time() - self.start_time, 0.001)
                 rate = stats.checked / elapsed
                 print(
