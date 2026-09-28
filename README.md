@@ -93,6 +93,12 @@ Run the default pipeline:
 python filter_github_repositories.py
 ```
 
+Count repositories excluded at each local filtering stage:
+
+```bash
+python count_repository_filter_stages.py
+```
+
 Run with a GitHub token loaded from `.env` or the environment:
 
 ```bash
@@ -153,6 +159,24 @@ The error file format is tab-separated:
 ```text
 full_name<TAB>default_branch<TAB>reason
 ```
+
+## Filter Stage Counts
+
+`count_repository_filter_stages.py` scans the input JSON without external access and reports:
+
+- repositories excluded by the active-repository filter (`isArchived`, `isDisabled`, or `isLocked`)
+- repositories excluded by the fork filter (`isFork`) after the active filter
+- repositories remaining for the workflow-file check
+
+If workflow-check outputs already exist, pass them to derive the workflow stage by subtraction:
+
+```bash
+python count_repository_filter_stages.py \
+  --matched-output output/repos.txt \
+  --error-output output/http_errors.txt
+```
+
+This derived workflow count assumes the output files were produced from the same input and limit.
 
 ## CLI Options
 
